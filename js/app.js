@@ -1,4 +1,9 @@
 // ============================================
+// 전역 변수
+// ============================================
+let currentFilter = 'all'; // 'all' 또는 'important'
+
+// ============================================
 // 앱 초기화
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,6 +31,40 @@ function initEventListeners() {
   if (searchInput) {
     searchInput.addEventListener('input', searchMemos);
   }
+
+  // 필터 버튼
+  const filterAllBtn = document.getElementById('filter-all');
+  const filterImportantBtn = document.getElementById('filter-important');
+
+  if (filterAllBtn) {
+    filterAllBtn.addEventListener('click', () => setFilter('all'));
+  }
+
+  if (filterImportantBtn) {
+    filterImportantBtn.addEventListener('click', () => setFilter('important'));
+  }
+}
+
+// ============================================
+// 필터 설정
+// ============================================
+function setFilter(filter) {
+  currentFilter = filter;
+
+  // 버튼 활성화 상태 변경
+  const filterAllBtn = document.getElementById('filter-all');
+  const filterImportantBtn = document.getElementById('filter-important');
+
+  if (filter === 'all') {
+    filterAllBtn.classList.add('active');
+    filterImportantBtn.classList.remove('active');
+  } else {
+    filterAllBtn.classList.remove('active');
+    filterImportantBtn.classList.add('active');
+  }
+
+  // 메모 다시 로드
+  loadMemos();
 }
 
 // ============================================
@@ -36,11 +75,19 @@ function loadMemos() {
   if (!memoList) return;
 
   // LocalStorage에서 메모 가져오기
-  const memos = getMemos();
+  let memos = getMemos();
+
+  // 필터 적용
+  if (currentFilter === 'important') {
+    memos = memos.filter(memo => memo.isImportant);
+  }
 
   // 메모가 없으면 안내 메시지 표시
   if (memos.length === 0) {
-    memoList.innerHTML = '<p style="text-align: center; color: var(--text-placeholder); padding: 2rem;">아직 메모가 없습니다.<br>+ New memo 버튼을 눌러 시작하세요!</p>';
+    const message = currentFilter === 'important'
+      ? '중요 메모가 없습니다.<br>별표를 눌러 중요 메모로 지정하세요!'
+      : '아직 메모가 없습니다.<br>+ New memo 버튼을 눌러 시작하세요!';
+    memoList.innerHTML = `<p style="text-align: center; color: var(--text-placeholder); padding: 2rem;">${message}</p>`;
     return;
   }
 
@@ -71,16 +118,50 @@ function createMemoElement(memo) {
   div.className = 'memo-item';
   div.dataset.id = memo.id;
 
+  const starIcon = memo.isImportant ? '⭐' : '☆';
+
   div.innerHTML = `
-    <h3>📁 ${memo.title || '제목 없음'}</h3>
-    <p>${memo.content || ''}</p>
-    <div class="memo-date">${formatDate(memo.date)}</div>
+    <div class="memo-item-header">
+      <h3>📁 ${memo.title || '제목 없음'}</h3>
+      <button class="star-btn ${memo.isImportant ? 'active' : ''}" data-id="${memo.id}">
+        ${starIcon}
+      </button>
+    </div>
+    <div class="memo-item-content">
+      <p>${memo.content || ''}</p>
+      <div class="memo-date">${formatDate(memo.date)}</div>
+    </div>
   `;
 
-  // 클릭 이벤트 - 메모 상세보기/수정
-  div.addEventListener('click', () => editMemo(memo.id));
+  // 별 버튼 클릭 이벤트
+  const starBtn = div.querySelector('.star-btn');
+  starBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // 메모 클릭 이벤트 방지
+    toggleImportant(memo.id);
+  });
+
+  // 메모 내용 클릭 이벤트
+  const memoContent = div.querySelector('.memo-item-content');
+  const memoTitle = div.querySelector('h3');
+
+  memoContent.addEventListener('click', () => editMemo(memo.id));
+  memoTitle.addEventListener('click', () => editMemo(memo.id));
 
   return div;
+}
+
+// ============================================
+// 중요 메모 토글
+// ============================================
+function toggleImportant(id) {
+  const memos = getMemos();
+  const memo = memos.find(m => m.id === id);
+
+  if (!memo) return;
+
+  memo.isImportant = !memo.isImportant;
+  saveMemos(memos);
+  loadMemos();
 }
 
 // ============================================
@@ -113,7 +194,8 @@ function createNewMemo() {
     id: Date.now(),
     title: title,
     content: content,
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
+    isImportant: false
   };
 
   memos.unshift(newMemo); // 맨 앞에 추가
@@ -155,7 +237,14 @@ function searchMemos() {
   const searchInput = document.getElementById('search-input');
   const query = searchInput.value.toLowerCase();
 
-  const allMemos = getMemos();
+  let allMemos = getMemos();
+
+  // 필터 적용
+  if (currentFilter === 'important') {
+    allMemos = allMemos.filter(memo => memo.isImportant);
+  }
+
+  // 검색어 적용
   const filteredMemos = allMemos.filter(memo =>
     memo.title.toLowerCase().includes(query) ||
     memo.content.toLowerCase().includes(query)
