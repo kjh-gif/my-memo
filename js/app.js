@@ -131,6 +131,9 @@ function createMemoElement(memo) {
       <p>${memo.content || ''}</p>
       <div class="memo-date">${formatDate(memo.date)}</div>
     </div>
+    <div class="memo-item-footer">
+      <button class="delete-btn" data-id="${memo.id}">🗑️ 삭제</button>
+    </div>
   `;
 
   // 별 버튼 클릭 이벤트
@@ -138,6 +141,13 @@ function createMemoElement(memo) {
   starBtn.addEventListener('click', (e) => {
     e.stopPropagation(); // 메모 클릭 이벤트 방지
     toggleImportant(memo.id);
+  });
+
+  // 삭제 버튼 클릭 이벤트
+  const deleteBtn = div.querySelector('.delete-btn');
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // 메모 클릭 이벤트 방지
+    deleteMemo(memo.id);
   });
 
   // 메모 내용 클릭 이벤트
@@ -162,6 +172,23 @@ function toggleImportant(id) {
   memo.isImportant = !memo.isImportant;
   saveMemos(memos);
   loadMemos();
+}
+
+// ============================================
+// 메모 삭제
+// ============================================
+function deleteMemo(id) {
+  // 삭제 확인
+  const confirmed = confirm('정말로 이 메모를 삭제하시겠습니까?');
+  if (!confirmed) return;
+
+  const memos = getMemos();
+  const filteredMemos = memos.filter(m => m.id !== id);
+
+  saveMemos(filteredMemos);
+  loadMemos();
+
+  alert('메모가 삭제되었습니다.');
 }
 
 // ============================================

@@ -202,6 +202,31 @@ main {
   color: var(--text-placeholder);
 }
 
+.memo-item-footer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.delete-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #cc0000;
+}
+
 /* ============================================
    새 메모 버튼
 ============================================ */
