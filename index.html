@@ -22,8 +22,8 @@
     <h1>My memo</h1>
   </header>
 
-  <!-- 메인 컨텐츠 -->
-  <main>
+  <!-- 메인 화면 -->
+  <main id="main-view">
     <!-- 검색창 -->
     <div class="search-container">
       <input type="text" id="search-input" placeholder="검색...">
@@ -44,6 +44,26 @@
     <!-- 새 메모 버튼 -->
     <button id="new-memo-btn" class="new-memo-btn">+ New memo</button>
   </main>
+
+  <!-- 메모 작성/수정 화면 -->
+  <section id="editor-view" class="editor-view" style="display: none;">
+    <!-- 상단 버튼 -->
+    <div class="editor-header">
+      <button id="back-btn" class="header-btn">← 뒤로</button>
+      <button id="save-btn" class="header-btn save-btn">저장</button>
+    </div>
+
+    <!-- 메모 폼 -->
+    <div class="editor-content">
+      <input type="text" id="memo-title" class="memo-title-input" placeholder="제목 입력">
+      <textarea id="memo-content" class="memo-content-input" placeholder="메모 내용 입력"></textarea>
+    </div>
+
+    <!-- 하단 버튼 -->
+    <div class="editor-footer">
+      <button id="editor-delete-btn" class="editor-action-btn delete">🗑️ 삭제</button>
+    </div>
+  </section>
 
   <!-- JavaScript -->
   <script src="js/app.js"></script>

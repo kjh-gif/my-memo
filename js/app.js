@@ -2,6 +2,7 @@
 // 전역 변수
 // ============================================
 let currentFilter = 'all'; // 'all' 또는 'important'
+let currentEditingId = null; // 현재 편집 중인 메모 ID
 
 // ============================================
 // 앱 초기화
@@ -23,7 +24,7 @@ function initEventListeners() {
   // 새 메모 버튼
   const newMemoBtn = document.getElementById('new-memo-btn');
   if (newMemoBtn) {
-    newMemoBtn.addEventListener('click', createNewMemo);
+    newMemoBtn.addEventListener('click', openNewMemoEditor);
   }
 
   // 검색 기능
@@ -43,6 +44,119 @@ function initEventListeners() {
   if (filterImportantBtn) {
     filterImportantBtn.addEventListener('click', () => setFilter('important'));
   }
+
+  // 에디터 버튼들
+  const backBtn = document.getElementById('back-btn');
+  const saveBtn = document.getElementById('save-btn');
+  const editorDeleteBtn = document.getElementById('editor-delete-btn');
+
+  if (backBtn) {
+    backBtn.addEventListener('click', showMainView);
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', saveMemo);
+  }
+
+  if (editorDeleteBtn) {
+    editorDeleteBtn.addEventListener('click', deleteCurrentMemo);
+  }
+}
+
+// ============================================
+// 화면 전환
+// ============================================
+function showMainView() {
+  document.getElementById('main-view').style.display = 'block';
+  document.getElementById('editor-view').style.display = 'none';
+  currentEditingId = null;
+  loadMemos();
+}
+
+function showEditorView() {
+  document.getElementById('main-view').style.display = 'none';
+  document.getElementById('editor-view').style.display = 'flex';
+}
+
+// ============================================
+// 새 메모 작성 화면 열기
+// ============================================
+function openNewMemoEditor() {
+  currentEditingId = null;
+  document.getElementById('memo-title').value = '';
+  document.getElementById('memo-content').value = '';
+  document.getElementById('editor-delete-btn').style.display = 'none';
+  showEditorView();
+}
+
+// ============================================
+// 메모 수정 화면 열기
+// ============================================
+function openEditMemoEditor(id) {
+  const memos = getMemos();
+  const memo = memos.find(m => m.id === id);
+
+  if (!memo) return;
+
+  currentEditingId = id;
+  document.getElementById('memo-title').value = memo.title;
+  document.getElementById('memo-content').value = memo.content;
+  document.getElementById('editor-delete-btn').style.display = 'block';
+  showEditorView();
+}
+
+// ============================================
+// 메모 저장
+// ============================================
+function saveMemo() {
+  const title = document.getElementById('memo-title').value.trim();
+  const content = document.getElementById('memo-content').value.trim();
+
+  if (!title && !content) {
+    alert('제목 또는 내용을 입력해주세요.');
+    return;
+  }
+
+  const memos = getMemos();
+
+  if (currentEditingId) {
+    // 수정 모드
+    const memo = memos.find(m => m.id === currentEditingId);
+    if (memo) {
+      memo.title = title || '제목 없음';
+      memo.content = content;
+      memo.date = new Date().toISOString();
+    }
+  } else {
+    // 새 메모 추가
+    const newMemo = {
+      id: Date.now(),
+      title: title || '제목 없음',
+      content: content,
+      date: new Date().toISOString(),
+      isImportant: false
+    };
+    memos.unshift(newMemo);
+  }
+
+  saveMemos(memos);
+  showMainView();
+}
+
+// ============================================
+// 에디터에서 메모 삭제
+// ============================================
+function deleteCurrentMemo() {
+  if (!currentEditingId) return;
+
+  const confirmed = confirm('정말로 이 메모를 삭제하시겠습니까?');
+  if (!confirmed) return;
+
+  const memos = getMemos();
+  const filteredMemos = memos.filter(m => m.id !== currentEditingId);
+
+  saveMemos(filteredMemos);
+  showMainView();
 }
 
 // ============================================
@@ -139,23 +253,23 @@ function createMemoElement(memo) {
   // 별 버튼 클릭 이벤트
   const starBtn = div.querySelector('.star-btn');
   starBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // 메모 클릭 이벤트 방지
+    e.stopPropagation();
     toggleImportant(memo.id);
   });
 
   // 삭제 버튼 클릭 이벤트
   const deleteBtn = div.querySelector('.delete-btn');
   deleteBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // 메모 클릭 이벤트 방지
+    e.stopPropagation();
     deleteMemo(memo.id);
   });
 
-  // 메모 내용 클릭 이벤트
+  // 메모 내용 클릭 이벤트 - 수정 화면으로 이동
   const memoContent = div.querySelector('.memo-item-content');
   const memoTitle = div.querySelector('h3');
 
-  memoContent.addEventListener('click', () => editMemo(memo.id));
-  memoTitle.addEventListener('click', () => editMemo(memo.id));
+  memoContent.addEventListener('click', () => openEditMemoEditor(memo.id));
+  memoTitle.addEventListener('click', () => openEditMemoEditor(memo.id));
 
   return div;
 }
@@ -175,10 +289,9 @@ function toggleImportant(id) {
 }
 
 // ============================================
-// 메모 삭제
+// 메모 삭제 (목록에서)
 // ============================================
 function deleteMemo(id) {
-  // 삭제 확인
   const confirmed = confirm('정말로 이 메모를 삭제하시겠습니까?');
   if (!confirmed) return;
 
@@ -187,8 +300,6 @@ function deleteMemo(id) {
 
   saveMemos(filteredMemos);
   loadMemos();
-
-  alert('메모가 삭제되었습니다.');
 }
 
 // ============================================
@@ -204,57 +315,6 @@ function getMemos() {
 // ============================================
 function saveMemos(memos) {
   localStorage.setItem('memos', JSON.stringify(memos));
-}
-
-// ============================================
-// 새 메모 생성
-// ============================================
-function createNewMemo() {
-  const title = prompt('메모 제목을 입력하세요:');
-  if (!title) return;
-
-  const content = prompt('메모 내용을 입력하세요:');
-  if (content === null) return;
-
-  const memos = getMemos();
-  const newMemo = {
-    id: Date.now(),
-    title: title,
-    content: content,
-    date: new Date().toISOString(),
-    isImportant: false
-  };
-
-  memos.unshift(newMemo); // 맨 앞에 추가
-  saveMemos(memos);
-  loadMemos();
-
-  alert('메모가 저장되었습니다!');
-}
-
-// ============================================
-// 메모 수정
-// ============================================
-function editMemo(id) {
-  const memos = getMemos();
-  const memo = memos.find(m => m.id === id);
-
-  if (!memo) return;
-
-  const title = prompt('메모 제목:', memo.title);
-  if (title === null) return;
-
-  const content = prompt('메모 내용:', memo.content);
-  if (content === null) return;
-
-  memo.title = title;
-  memo.content = content;
-  memo.date = new Date().toISOString();
-
-  saveMemos(memos);
-  loadMemos();
-
-  alert('메모가 수정되었습니다!');
 }
 
 // ============================================

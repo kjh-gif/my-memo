@@ -2,7 +2,7 @@
 // Service Worker - My memo PWA
 // ============================================
 
-const CACHE_NAME = 'my-memo-v1';
+const CACHE_NAME = 'my-memo-v2';
 
 // 캐시할 파일 목록
 const urlsToCache = [
